@@ -1,0 +1,1806 @@
+
+<!doctype html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>DDoS Load Simulation - gNB to UPF</title>
+  <style>
+    :root{
+      --bg-1:#061a24;
+      --bg-2:#0f3140;
+      --panel:rgba(255,255,255,0.07);
+      --panel-soft:rgba(255,255,255,0.05);
+      --line:rgba(255,255,255,0.18);
+      --text:#edf7fb;
+      --muted:rgba(237,247,251,0.74);
+      --good:#56f4b8;
+      --bad:#ff6f8b;
+      --warn:#ffcb65;
+      --accent:#78cfff;
+      --shadow:0 22px 48px rgba(0,0,0,0.34);
+      --r:16px;
+    }
+
+    *{ box-sizing:border-box; }
+
+    body{
+      margin:0;
+      color:var(--text);
+      font-family:"IBM Plex Sans","Trebuchet MS","Gill Sans",sans-serif;
+      min-height:100vh;
+      background:
+        radial-gradient(1000px 650px at 5% 10%, #18445b 0%, transparent 58%),
+        radial-gradient(900px 600px at 95% 25%, #135b63 0%, transparent 56%),
+        linear-gradient(150deg,var(--bg-1),var(--bg-2));
+      overflow-x:hidden;
+    }
+
+    .frame{
+      max-width:1240px;
+      margin:0 auto;
+      padding:20px 18px 28px;
+    }
+
+    header{
+      display:grid;
+      gap:0;
+    }
+
+    .header-tools{
+      display:flex;
+      justify-content:flex-end;
+      margin-bottom:8px;
+    }
+
+    .theme-picker{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      border:1px solid var(--line);
+      border-radius:999px;
+      padding:6px 10px;
+      background:var(--panel-soft);
+      color:var(--muted);
+      font-size:12.5px;
+      font-weight:650;
+    }
+
+    .theme-picker select{
+      border:1px solid var(--line);
+      border-radius:999px;
+      background:rgba(255,255,255,0.08);
+      color:var(--text);
+      padding:4px 9px;
+      font-size:12.5px;
+      outline:none;
+      cursor:pointer;
+    }
+
+    .theme-picker select:focus{
+      border-color:rgba(120,207,255,0.65);
+      box-shadow:0 0 0 2px rgba(120,207,255,0.15);
+    }
+
+    h1{
+      margin:0;
+      font-size:clamp(24px,2.6vw,36px);
+      letter-spacing:0.2px;
+      font-weight:850;
+    }
+
+    .sub{
+      margin:10px 0 0;
+      color:var(--muted);
+      line-height:1.46;
+      max-width:980px;
+    }
+
+    .note{
+      margin-top:12px;
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:7px 12px;
+      border-radius:999px;
+      border:1px solid var(--line);
+      background:var(--panel-soft);
+      color:var(--muted);
+      font-size:13px;
+      white-space:nowrap;
+    }
+
+    main{
+      margin-top:14px;
+      display:grid;
+      grid-template-columns:420px 1fr;
+      gap:14px;
+    }
+
+    @media (max-width:1020px){
+      main{ grid-template-columns:1fr; }
+    }
+
+    .card{
+      border:1px solid var(--line);
+      border-radius:var(--r);
+      background:linear-gradient(180deg,var(--panel),rgba(255,255,255,0.04));
+      box-shadow:var(--shadow);
+      overflow:hidden;
+    }
+
+    .head{
+      padding:13px 15px 12px;
+      border-bottom:1px solid var(--line);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      flex-wrap:wrap;
+      background:rgba(255,255,255,0.03);
+    }
+
+    .head h2{
+      margin:0;
+      font-size:15px;
+      letter-spacing:0.2px;
+      font-weight:780;
+    }
+
+    .pill{
+      border:1px solid var(--line);
+      border-radius:999px;
+      background:var(--panel-soft);
+      padding:7px 10px;
+      color:var(--muted);
+      font-size:12.5px;
+      white-space:nowrap;
+    }
+
+    .body{ padding:14px 15px 15px; }
+
+    .row{
+      margin:8px 0 4px;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:8px;
+    }
+
+    .row strong{ font-size:14px; }
+    .row small{ color:var(--muted); font-size:12px; }
+
+    .value{
+      min-width:86px;
+      text-align:right;
+      font-size:13px;
+      color:var(--text);
+      font-weight:720;
+    }
+
+    input[type="range"]{
+      width:100%;
+      accent-color:var(--accent);
+      margin-bottom:5px;
+    }
+
+    .split{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:10px;
+      margin-top:10px;
+    }
+
+    .tag{
+      border:1px solid var(--line);
+      border-radius:12px;
+      background:var(--panel-soft);
+      padding:8px 9px;
+      font-size:12px;
+      color:var(--muted);
+      line-height:1.4;
+    }
+
+    .detect-box{
+      margin-top:12px;
+      border:1px solid var(--line);
+      border-radius:12px;
+      background:rgba(255,255,255,0.03);
+      padding:10px 10px 8px;
+    }
+
+    .detect-box h3{
+      margin:0 0 8px;
+      font-size:13px;
+      letter-spacing:0.2px;
+      font-weight:760;
+      color:rgba(255,255,255,0.9);
+    }
+
+    .toggle{
+      margin-top:8px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      border:1px solid var(--line);
+      border-radius:10px;
+      background:rgba(255,255,255,0.04);
+      padding:8px 9px;
+      font-size:12.5px;
+      color:var(--text);
+    }
+
+    .toggle label{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      cursor:pointer;
+    }
+
+    .toggle input[type="checkbox"]{
+      width:16px;
+      height:16px;
+      accent-color:var(--bad);
+      cursor:pointer;
+    }
+
+    .btnbar{
+      margin-top:12px;
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+    }
+
+    button{
+      border:1px solid var(--line);
+      border-radius:11px;
+      background:rgba(255,255,255,0.06);
+      color:var(--text);
+      padding:9px 11px;
+      font-weight:760;
+      letter-spacing:0.1px;
+      cursor:pointer;
+      transition:transform .08s ease, background .12s ease, border-color .12s ease;
+    }
+
+    button:hover{
+      background:rgba(255,255,255,0.1);
+      border-color:rgba(255,255,255,0.25);
+    }
+
+    button:active{ transform:translateY(1px); }
+
+    .primary{
+      border-color:rgba(120,207,255,0.55);
+      background:linear-gradient(130deg,rgba(120,207,255,0.26),rgba(86,244,184,0.16));
+    }
+
+    .danger{
+      border-color:rgba(255,111,139,0.55);
+      background:linear-gradient(130deg,rgba(255,111,139,0.22),rgba(255,203,101,0.12));
+    }
+
+    .metrics{
+      display:grid;
+      grid-template-columns:repeat(4, minmax(130px, 1fr));
+      gap:10px;
+    }
+
+    @media (max-width:760px){
+      .metrics{ grid-template-columns:repeat(2, minmax(130px, 1fr)); }
+    }
+
+    .m{
+      border:1px solid var(--line);
+      border-radius:12px;
+      background:var(--panel-soft);
+      padding:9px 10px;
+      min-height:66px;
+    }
+
+    .m .t{
+      font-size:11px;
+      color:var(--muted);
+      margin-bottom:4px;
+      letter-spacing:0.1px;
+    }
+
+    .m .v{
+      font-size:18px;
+      font-weight:820;
+      line-height:1.15;
+    }
+
+    .viz{
+      display:grid;
+      grid-template-rows:auto 1fr auto;
+      min-height:620px;
+    }
+
+    canvas{
+      width:100%;
+      height:100%;
+      display:block;
+      background:
+        radial-gradient(900px 520px at 26% 20%, rgba(120,207,255,0.09), transparent 60%),
+        radial-gradient(850px 500px at 80% 75%, rgba(86,244,184,0.06), transparent 62%),
+        rgba(0,0,0,0.12);
+    }
+
+    .graph-wrap{
+      border-top:1px solid var(--line);
+      padding:8px 12px 10px;
+      background:rgba(255,255,255,0.02);
+    }
+
+    .legend{
+      display:flex;
+      gap:12px;
+      flex-wrap:wrap;
+      font-size:12px;
+      color:var(--muted);
+      margin-bottom:6px;
+    }
+
+    .key{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+    }
+
+    .dot{
+      width:9px;
+      height:9px;
+      border-radius:999px;
+      display:inline-block;
+    }
+
+    #history{ height:112px; border-radius:10px; }
+
+    .intel-wrap{
+      border-top:1px solid var(--line);
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:10px;
+      padding:10px 12px 12px;
+      background:rgba(255,255,255,0.02);
+    }
+
+    @media (max-width:860px){
+      .intel-wrap{ grid-template-columns:1fr; }
+    }
+
+    .intel-panel{
+      border:1px solid var(--line);
+      border-radius:12px;
+      background:rgba(0,0,0,0.14);
+      min-height:220px;
+      display:grid;
+      grid-template-rows:auto 1fr;
+      overflow:hidden;
+    }
+
+    .intel-head{
+      border-bottom:1px solid var(--line);
+      padding:8px 10px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:8px;
+      flex-wrap:wrap;
+      background:rgba(255,255,255,0.02);
+    }
+
+    .intel-head h3{
+      margin:0;
+      font-size:13px;
+      letter-spacing:0.2px;
+      font-weight:760;
+      color:rgba(255,255,255,0.92);
+    }
+
+    .log-window{
+      padding:8px 10px;
+      overflow:auto;
+      max-height:260px;
+      font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;
+      font-size:12px;
+      line-height:1.46;
+    }
+
+    .log-line{
+      padding:4px 0;
+      border-bottom:1px dotted rgba(255,255,255,0.08);
+      color:rgba(255,255,255,0.88);
+      word-break:break-word;
+    }
+
+    .log-line .ts{ color:rgba(255,255,255,0.58); }
+    .log-line.alert{ color:#ffd4dd; }
+    .log-line.info{ color:#c6f6e6; }
+    .log-line.system{ color:#d3e9ff; }
+
+    .empty{
+      color:rgba(255,255,255,0.55);
+      padding:6px 0;
+      font-style:italic;
+    }
+
+    .bar-list{
+      padding:8px 10px 10px;
+      overflow:auto;
+      max-height:260px;
+    }
+
+    .bar-row{ margin-bottom:9px; }
+    .bar-row.disconnected .imei{ color:#ffd1db; }
+    .bar-row.disconnected .bar-fill{
+      background:linear-gradient(90deg, rgba(255,89,120,0.95), rgba(255,67,95,0.9));
+      box-shadow:0 0 14px rgba(255,67,95,0.35);
+    }
+
+    .bar-meta{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:8px;
+      font-size:12px;
+      margin-bottom:4px;
+    }
+
+    .imei{
+      color:rgba(255,255,255,0.9);
+      font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;
+    }
+
+    .count{ color:rgba(255,255,255,0.72); }
+
+    .bar-track{
+      width:100%;
+      height:11px;
+      border-radius:999px;
+      background:rgba(255,255,255,0.09);
+      overflow:hidden;
+      border:1px solid rgba(255,255,255,0.08);
+    }
+
+    .bar-fill{
+      height:100%;
+      border-radius:999px;
+      background:linear-gradient(90deg, rgba(255,111,139,0.95), rgba(255,203,101,0.9));
+      box-shadow:0 0 14px rgba(255,111,139,0.32);
+    }
+
+    body.theme-light{
+      --bg-1:#edf6fb;
+      --bg-2:#d7e9f5;
+      --panel:rgba(255,255,255,0.86);
+      --panel-soft:rgba(255,255,255,0.72);
+      --line:rgba(17,65,93,0.2);
+      --text:#103348;
+      --muted:rgba(16,51,72,0.72);
+      --accent:#2d8ad3;
+      --shadow:0 16px 34px rgba(15,52,73,0.14);
+      background:
+        radial-gradient(1000px 650px at 5% 10%, #cde3f3 0%, transparent 58%),
+        radial-gradient(900px 600px at 95% 25%, #d8edf5 0%, transparent 56%),
+        linear-gradient(150deg,var(--bg-1),var(--bg-2));
+    }
+
+    body.theme-light .head,
+    body.theme-light .detect-box,
+    body.theme-light .graph-wrap,
+    body.theme-light .intel-wrap,
+    body.theme-light .intel-panel,
+    body.theme-light .intel-head,
+    body.theme-light .toggle{
+      background:rgba(255,255,255,0.55);
+    }
+
+    body.theme-light .head h2,
+    body.theme-light .detect-box h3,
+    body.theme-light .intel-head h3{
+      color:rgba(16,51,72,0.92);
+    }
+
+    body.theme-light .log-line{
+      border-bottom:1px dotted rgba(17,65,93,0.13);
+      color:rgba(16,51,72,0.88);
+    }
+
+    body.theme-light .log-line .ts{ color:rgba(16,51,72,0.58); }
+    body.theme-light .log-line.alert{ color:#8c1d31; }
+    body.theme-light .log-line.info{ color:#10595d; }
+    body.theme-light .log-line.system{ color:#16476f; }
+    body.theme-light .count{ color:rgba(16,51,72,0.74); }
+    body.theme-light .imei{ color:rgba(16,51,72,0.9); }
+
+    body.theme-light canvas{
+      background:
+        radial-gradient(900px 520px at 26% 20%, rgba(45,138,211,0.14), transparent 60%),
+        radial-gradient(850px 500px at 80% 75%, rgba(0,160,133,0.1), transparent 62%),
+        rgba(210,229,240,0.42);
+    }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <header>
+      <div class="header-tools">
+        <div class="theme-picker">
+          <label for="themeSelect">Theme</label>
+          <select id="themeSelect" aria-label="Theme selection">
+            <option value="dark">Dark</option>
+            <option value="light">Light</option>
+          </select>
+        </div>
+      </div>
+      <h1>DDoS Saturation Simulation (gNB -> UPF -> Services)</h1>
+      <p class="sub">
+        This standalone model focuses on DDoS behaviour only. Legitimate traffic is capped so that it can never exceed
+        <strong>80%</strong> of UPF load on its own. As malicious traffic rises, legitimate service collapses and can become negligible near full saturation.
+      </p>
+      <div class="note">Educational offline simulation only - no live network traffic is produced.</div>
+    </header>
+
+    <main>
+      <section class="card">
+        <div class="head">
+          <h2>Simulation Controls</h2>
+          <div class="pill" id="summary">Load: 0%</div>
+        </div>
+        <div class="body">
+          <div class="row">
+            <strong>Legitimate devices</strong>
+            <div class="value" id="legitDevicesVal">80</div>
+          </div>
+          <input id="legitDevices" type="range" min="0" max="220" value="80" />
+
+          <div class="row">
+            <strong>Malicious devices (botnet)</strong>
+            <div class="value" id="botDevicesVal">40</div>
+          </div>
+          <input id="botDevices" type="range" min="0" max="260" value="40" />
+
+          <div class="row">
+            <strong>Traffic per legitimate device</strong>
+            <div class="value" id="legitRateVal">4.0 req/s</div>
+          </div>
+          <input id="legitRate" type="range" min="0" max="200" value="40" />
+
+          <div class="row">
+            <strong>Traffic per malicious device</strong>
+            <div class="value" id="botRateVal">9.0 req/s</div>
+          </div>
+          <input id="botRate" type="range" min="0" max="400" value="90" />
+
+          <div class="row">
+            <strong>UPF capacity</strong>
+            <div class="value" id="capacityVal">1000 req/s</div>
+          </div>
+          <input id="capacity" type="range" min="200" max="2500" value="1000" />
+
+          <div class="row">
+            <strong>Collapse sharpness (gamma)</strong>
+            <div class="value" id="gammaVal">3.0</div>
+          </div>
+          <input id="gamma" type="range" min="10" max="80" value="30" />
+
+          <div class="row">
+            <strong>Legitimate floor at full saturation</strong>
+            <div class="value" id="floorVal">2.0%</div>
+          </div>
+          <input id="floor" type="range" min="0" max="200" value="20" />
+
+          <div class="row">
+            <strong>Simulation speed</strong>
+            <div class="value" id="speedVal">1.0x</div>
+          </div>
+          <input id="speed" type="range" min="5" max="30" value="10" />
+
+          <div class="btnbar">
+            <button id="start" class="primary">Start</button>
+            <button id="pause">Pause</button>
+            <button id="reset" class="danger">Reset counters</button>
+            <button id="normalPreset">Normal</button>
+            <button id="attackPreset">Attack ramp</button>
+            <button id="saturationPreset">Full saturation</button>
+          </div>
+
+          <div class="split">
+            <div class="tag">
+              <strong>Rule:</strong><br />
+              <code>L_off = min(N_legit * R_legit, 0.8 * C)</code>
+            </div>
+            <div class="tag">
+              <strong>Capacity sharing:</strong><br />
+              <code>L_srv = min(L_off, max(0, C - B_off))</code>, and reduction starts only when remaining UPF capacity is not enough.
+            </div>
+          </div>
+
+          <section class="detect-box">
+            <h3>Detection Thresholds</h3>
+
+            <div class="row">
+              <strong>Bot pressure threshold</strong>
+              <div class="value" id="detPressureVal">0.65x</div>
+            </div>
+            <input id="detPressure" type="range" min="20" max="150" value="65" />
+
+            <div class="row">
+              <strong>UPF load threshold</strong>
+              <div class="value" id="detLoadVal">82%</div>
+            </div>
+            <input id="detLoad" type="range" min="40" max="100" value="82" />
+
+            <div class="row">
+              <strong>Device rate factor</strong>
+              <div class="value" id="detFactorVal">0.48x</div>
+            </div>
+            <input id="detFactor" type="range" min="10" max="150" value="48" />
+
+            <div class="row">
+              <strong>Minimum suspect rate</strong>
+              <div class="value" id="detMinRateVal">2.5 req/s</div>
+            </div>
+            <input id="detMinRate" type="range" min="0" max="200" value="25" />
+
+            <div class="row">
+              <strong>Confirmation time</strong>
+              <div class="value" id="detConfirmVal">1.5 s</div>
+            </div>
+            <input id="detConfirm" type="range" min="5" max="100" value="15" />
+
+            <div class="toggle">
+              <label for="disconnectDetected">
+                <input id="disconnectDetected" type="checkbox" />
+                Disconnect detected malicious devices from the network
+              </label>
+              <span id="disconnectStateTxt">OFF</span>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <section class="card viz">
+        <div class="head">
+          <h2>Traffic and UPF State</h2>
+          <div class="metrics">
+            <div class="m"><div class="t">UPF load</div><div class="v" id="loadTxt">0%</div></div>
+            <div class="m"><div class="t">Legitimate served</div><div class="v" id="legitServedTxt">0 req/s</div></div>
+            <div class="m"><div class="t">Legitimate dropped</div><div class="v" id="legitDropTxt">0 req/s</div></div>
+            <div class="m"><div class="t">Botnet dropped</div><div class="v" id="botDropTxt">0 req/s</div></div>
+          </div>
+        </div>
+        <canvas id="scene"></canvas>
+        <div class="graph-wrap">
+          <div class="legend">
+            <span class="key"><span class="dot" style="background:#78cfff"></span>Load</span>
+            <span class="key"><span class="dot" style="background:#56f4b8"></span>Legitimate service factor</span>
+            <span class="key"><span class="dot" style="background:#ff6f8b"></span>Legitimate drop rate</span>
+            <span class="key"><span class="dot" style="background:#ffd38a"></span>Estimated latency</span>
+            <span class="key" id="countersTxt">Total served (legit): 0</span>
+          </div>
+          <canvas id="history"></canvas>
+        </div>
+        <div class="intel-wrap">
+          <section class="intel-panel">
+            <div class="intel-head">
+              <h3>Detection Logs</h3>
+              <span class="pill" id="logCountTxt">0 events</span>
+            </div>
+            <div id="logWindow" class="log-window"></div>
+          </section>
+          <section class="intel-panel">
+            <div class="intel-head">
+              <h3>Detected Malicious Devices (IMEI)</h3>
+              <span class="pill" id="detectedCountTxt">0 detected</span>
+            </div>
+            <div id="botBars" class="bar-list"></div>
+          </section>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+
+    const ui = {
+      themeSelect: $("themeSelect"),
+      legitDevices: $("legitDevices"),
+      botDevices: $("botDevices"),
+      legitRate: $("legitRate"),
+      botRate: $("botRate"),
+      capacity: $("capacity"),
+      gamma: $("gamma"),
+      floor: $("floor"),
+      speed: $("speed"),
+      detPressure: $("detPressure"),
+      detLoad: $("detLoad"),
+      detFactor: $("detFactor"),
+      detMinRate: $("detMinRate"),
+      detConfirm: $("detConfirm"),
+      disconnectDetected: $("disconnectDetected"),
+
+      legitDevicesVal: $("legitDevicesVal"),
+      botDevicesVal: $("botDevicesVal"),
+      legitRateVal: $("legitRateVal"),
+      botRateVal: $("botRateVal"),
+      capacityVal: $("capacityVal"),
+      gammaVal: $("gammaVal"),
+      floorVal: $("floorVal"),
+      speedVal: $("speedVal"),
+      detPressureVal: $("detPressureVal"),
+      detLoadVal: $("detLoadVal"),
+      detFactorVal: $("detFactorVal"),
+      detMinRateVal: $("detMinRateVal"),
+      detConfirmVal: $("detConfirmVal"),
+      disconnectStateTxt: $("disconnectStateTxt"),
+
+      start: $("start"),
+      pause: $("pause"),
+      reset: $("reset"),
+
+      normalPreset: $("normalPreset"),
+      attackPreset: $("attackPreset"),
+      saturationPreset: $("saturationPreset"),
+
+      summary: $("summary"),
+      loadTxt: $("loadTxt"),
+      legitServedTxt: $("legitServedTxt"),
+      legitDropTxt: $("legitDropTxt"),
+      botDropTxt: $("botDropTxt"),
+      countersTxt: $("countersTxt"),
+      logCountTxt: $("logCountTxt"),
+      detectedCountTxt: $("detectedCountTxt"),
+      logWindow: $("logWindow"),
+      botBars: $("botBars"),
+
+      scene: $("scene"),
+      history: $("history")
+    };
+
+    const sctx = ui.scene.getContext("2d");
+    const hctx = ui.history.getContext("2d");
+
+    function clamp(v, a, b){ return Math.max(a, Math.min(b, v)); }
+    function lerp(a, b, t){ return a + (b - a) * t; }
+    function dist(a, b){ return Math.hypot(b.x - a.x, b.y - a.y); }
+    function fmt(n){
+      return n.toLocaleString("en-GB", { maximumFractionDigits: 0 });
+    }
+
+    function applyTheme(theme){
+      const mode = theme === "light" ? "light" : "dark";
+      document.body.classList.toggle("theme-light", mode === "light");
+      if (ui.themeSelect.value !== mode) ui.themeSelect.value = mode;
+      try { localStorage.setItem("ddos_theme_mode", mode); } catch {}
+    }
+
+    const state = {
+      running: false,
+      legitNodes: [],
+      botNodes: [],
+      botFleet: [],
+      packets: [],
+      flashes: [],
+      debtLegit: 0,
+      debtLegitDrop: 0,
+      debtBot: 0,
+      time: 0,
+      historyTick: 0,
+      history: [],
+      maxHistory: 300,
+      totals: {
+        legitServed: 0,
+        legitDropped: 0,
+        botServed: 0,
+        botDropped: 0
+      },
+      metrics: {
+        L_off: 0,
+        B_off: 0,
+        L_srv: 0,
+        B_srv: 0,
+        L_drop: 0,
+        B_drop: 0,
+        load: 0,
+        f_legit: 1,
+        latency: 25
+      },
+      targetBotDevices: null,
+      logs: [],
+      maxLogs: 180,
+      detector: {
+        scanTimer: 0,
+        uiTimer: 0,
+        lastScanAt: 0,
+        lastAlertAt: -999,
+        recentHits: 0
+      },
+      botSerial: 0
+    };
+
+    function readParams(){
+      const p = {
+        legitDevices: Math.round(+ui.legitDevices.value),
+        botDevices: Math.round(+ui.botDevices.value),
+        legitRate: (+ui.legitRate.value) / 10,
+        botRate: (+ui.botRate.value) / 10,
+        capacity: +ui.capacity.value,
+        gamma: (+ui.gamma.value) / 10,
+        floor: (+ui.floor.value) / 1000,
+        speed: (+ui.speed.value) / 10,
+        detPressure: (+ui.detPressure.value) / 100,
+        detLoad: (+ui.detLoad.value) / 100,
+        detFactor: (+ui.detFactor.value) / 100,
+        detMinRate: (+ui.detMinRate.value) / 10,
+        detConfirm: (+ui.detConfirm.value) / 10,
+        disconnectDetected: !!ui.disconnectDetected.checked
+      };
+      p.floor = clamp(p.floor, 0, 0.2);
+      p.detPressure = clamp(p.detPressure, 0.2, 1.5);
+      p.detLoad = clamp(p.detLoad, 0.4, 1.0);
+      p.detFactor = clamp(p.detFactor, 0.1, 1.5);
+      p.detMinRate = clamp(p.detMinRate, 0, 20);
+      p.detConfirm = clamp(p.detConfirm, 0.5, 10);
+      return p;
+    }
+
+    function updateLabels(){
+      const p = readParams();
+      ui.legitDevicesVal.textContent = fmt(p.legitDevices);
+      ui.botDevicesVal.textContent = fmt(p.botDevices);
+      ui.legitRateVal.textContent = p.legitRate.toFixed(1) + " req/s";
+      ui.botRateVal.textContent = p.botRate.toFixed(1) + " req/s";
+      ui.capacityVal.textContent = fmt(p.capacity) + " req/s";
+      ui.gammaVal.textContent = p.gamma.toFixed(1);
+      ui.floorVal.textContent = (p.floor * 100).toFixed(1) + "%";
+      ui.speedVal.textContent = p.speed.toFixed(1) + "x";
+      ui.detPressureVal.textContent = p.detPressure.toFixed(2) + "x";
+      ui.detLoadVal.textContent = (p.detLoad * 100).toFixed(0) + "%";
+      ui.detFactorVal.textContent = p.detFactor.toFixed(2) + "x";
+      ui.detMinRateVal.textContent = p.detMinRate.toFixed(1) + " req/s";
+      ui.detConfirmVal.textContent = p.detConfirm.toFixed(1) + " s";
+      ui.disconnectStateTxt.textContent = p.disconnectDetected ? "ON" : "OFF";
+      ui.disconnectStateTxt.style.color = p.disconnectDetected ? "#ffd1db" : "rgba(255,255,255,0.72)";
+      syncBotFleet(p.botDevices);
+      rebuildNodes();
+    }
+
+    function computeModel(p, effectiveBotDevices){
+      const C = Math.max(1, p.capacity);
+      const L_off_raw = p.legitDevices * p.legitRate;
+      const L_off = Math.min(L_off_raw, 0.8 * C);
+      const B_off = Math.max(0, effectiveBotDevices) * p.botRate;
+
+      // Legitimate traffic passes fully while enough UPF capacity remains.
+      // If remaining capacity is not enough, legitimate service is reduced proportionally to the remainder.
+      const remainingForLegit = Math.max(0, C - B_off);
+      const L_srv = Math.min(L_off, remainingForLegit);
+      const B_srv = Math.min(B_off, Math.max(0, C - L_srv));
+      const f_legit = L_off > 0 ? (L_srv / L_off) : 1;
+
+      const L_drop = Math.max(0, L_off - L_srv);
+      const B_drop = Math.max(0, B_off - B_srv);
+      const load = clamp((L_srv + B_srv) / C, 0, 1);
+
+      const latency = Math.round(
+        22 + 65 * Math.pow(load, 1.7) + 380 * Math.pow(1 - f_legit, 1.35)
+      );
+
+      return { L_off, B_off, L_srv, B_srv, L_drop, B_drop, load, f_legit, latency, effectiveBotDevices };
+    }
+
+    function makeGridNodes(count, x0, y0, x1, y1){
+      const nodes = [];
+      if (count <= 0) return nodes;
+      const w = Math.max(1, x1 - x0);
+      const h = Math.max(1, y1 - y0);
+      const cols = Math.max(1, Math.floor(Math.sqrt(count * (w / h))));
+      const rows = Math.max(1, Math.ceil(count / cols));
+      const sx = w / cols;
+      const sy = h / rows;
+
+      for(let i = 0; i < count; i++){
+        const c = i % cols;
+        const r = Math.floor(i / cols);
+        const jx = (Math.random() - 0.5) * Math.min(8, sx * 0.25);
+        const jy = (Math.random() - 0.5) * Math.min(8, sy * 0.25);
+        nodes.push({
+          x: x0 + (c + 0.5) * sx + jx,
+          y: y0 + (r + 0.5) * sy + jy
+        });
+      }
+      return nodes;
+    }
+
+    function imeiCheckDigit(base14){
+      let sum = 0;
+      for (let i = 0; i < base14.length; i++){
+        let n = base14.charCodeAt(i) - 48;
+        if (i % 2 === 1){
+          n *= 2;
+          if (n > 9) n -= 9;
+        }
+        sum += n;
+      }
+      return (10 - (sum % 10)) % 10;
+    }
+
+    function makeImei(seed){
+      const serial = String((seed * 104729 + 123456789) % 1000000000000).padStart(12, "0");
+      const base14 = "35" + serial;
+      return base14 + String(imeiCheckDigit(base14));
+    }
+
+    function createBotProfile(){
+      state.botSerial += 1;
+      return {
+        id: state.botSerial,
+        imei: makeImei(state.botSerial),
+        aggressiveness: 0.65 + Math.random() * 0.9,
+        attackTotal: 0,
+        attackWindow: 0,
+        suspiciousSeconds: 0,
+        detected: false,
+        detectedAt: 0,
+        visible: false,
+        x: 0,
+        y: 0
+      };
+    }
+
+    function syncBotFleet(targetCount){
+      while (state.botFleet.length < targetCount){
+        state.botFleet.push(createBotProfile());
+      }
+      if (state.botFleet.length > targetCount){
+        state.botFleet.length = targetCount;
+      }
+    }
+
+    function formatSimTime(seconds){
+      const t = Math.max(0, Math.floor(seconds));
+      const mm = String(Math.floor(t / 60)).padStart(2, "0");
+      const ss = String(t % 60).padStart(2, "0");
+      return `${mm}:${ss}`;
+    }
+
+    function addLog(level, message){
+      state.logs.unshift({
+        t: state.time,
+        level,
+        message
+      });
+      if (state.logs.length > state.maxLogs) state.logs.length = state.maxLogs;
+    }
+
+    function escapeHtml(str){
+      return str
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll("\"", "&quot;");
+    }
+
+    let lastGeom = { w: 0, h: 0, ld: -1, bd: -1 };
+    function rebuildNodes(){
+      const W = ui.scene.clientWidth;
+      const H = ui.scene.clientHeight;
+      const p = readParams();
+      if (W === lastGeom.w && H === lastGeom.h && p.legitDevices === lastGeom.ld && p.botDevices === lastGeom.bd) return;
+      lastGeom = { w: W, h: H, ld: p.legitDevices, bd: p.botDevices };
+
+      state.legitNodes = makeGridNodes(Math.min(p.legitDevices, 140), 24, 56, W * 0.28, H * 0.46);
+      state.botNodes = makeGridNodes(Math.min(p.botDevices, 140), 24, H * 0.58, W * 0.28, H - 28);
+
+      for (const b of state.botFleet){
+        b.visible = false;
+      }
+      for (let i = 0; i < state.botNodes.length && i < state.botFleet.length; i++){
+        state.botFleet[i].visible = true;
+        state.botFleet[i].x = state.botNodes[i].x;
+        state.botFleet[i].y = state.botNodes[i].y;
+      }
+    }
+
+    function addFlash(x, y, kind){
+      state.flashes.push({ x, y, t: 0, kind });
+    }
+
+    function spawnPacket(kind, from, gnb, upf, sink, passChance, sourceImei){
+      state.packets.push({
+        kind,
+        sourceImei: sourceImei || "",
+        stage: 0,
+        x: from.x,
+        y: from.y,
+        a0: { x: from.x, y: from.y },
+        b0: { x: gnb.x, y: gnb.y },
+        a1: { x: gnb.x, y: gnb.y },
+        b1: { x: upf.x, y: upf.y },
+        a2: { x: upf.x, y: upf.y },
+        b2: { x: sink.x, y: sink.y + (Math.random() - 0.5) * 26 },
+        t: 0,
+        speed: 310 * (0.85 + Math.random() * 0.5),
+        passChance
+      });
+    }
+
+    function advancePacket(pk, dt){
+      const from = pk.stage === 0 ? pk.a0 : (pk.stage === 1 ? pk.a1 : pk.a2);
+      const to = pk.stage === 0 ? pk.b0 : (pk.stage === 1 ? pk.b1 : pk.b2);
+      const d = Math.max(1, dist(from, to));
+      pk.t += (pk.speed * dt) / d;
+      if (pk.t >= 1){
+        pk.x = to.x;
+        pk.y = to.y;
+        pk.stage += 1;
+        pk.t = 0;
+      } else {
+        pk.x = lerp(from.x, to.x, pk.t);
+        pk.y = lerp(from.y, to.y, pk.t);
+      }
+    }
+
+    function randomBotOrigin(W, H){
+      return {
+        x: 24 + Math.random() * Math.max(8, (W * 0.28) - 24),
+        y: (H * 0.58) + Math.random() * Math.max(8, (H - 28) - (H * 0.58))
+      };
+    }
+
+    function isBotDisconnected(bot, p){
+      return p.disconnectDetected && bot.detected;
+    }
+
+    function updateBotTelemetry(p, dt){
+      if (dt <= 0 || state.botFleet.length === 0) return;
+      for (const bot of state.botFleet){
+        if (isBotDisconnected(bot, p)) continue;
+        const attacks = p.botRate * bot.aggressiveness * dt;
+        bot.attackTotal += attacks;
+        bot.attackWindow += attacks;
+      }
+    }
+
+    function runDetector(p, dt){
+      if (dt <= 0 || state.botFleet.length === 0) return;
+
+      state.detector.scanTimer += dt;
+      if (state.detector.scanTimer < 1.0) return;
+
+      const windowSeconds = state.detector.scanTimer;
+      state.detector.scanTimer = 0;
+      state.detector.lastScanAt = state.time;
+
+      const pressure = state.metrics.B_off / Math.max(1e-6, 0.2 * p.capacity);
+      const pressureGate = pressure >= p.detPressure || state.metrics.load >= p.detLoad;
+      const suspectRate = Math.max(p.detMinRate, p.botRate * p.detFactor);
+      const newHits = [];
+
+      for (const bot of state.botFleet){
+        const rate = bot.attackWindow / Math.max(1e-6, windowSeconds);
+        bot.attackWindow = 0;
+
+        const suspicious = pressureGate && rate >= suspectRate;
+        if (suspicious){
+          bot.suspiciousSeconds += windowSeconds;
+          if (!bot.detected && bot.suspiciousSeconds >= p.detConfirm){
+            bot.detected = true;
+            bot.detectedAt = state.time;
+            newHits.push({ imei: bot.imei, rate });
+          }
+        } else {
+          bot.suspiciousSeconds = Math.max(0, bot.suspiciousSeconds - windowSeconds * 0.5);
+        }
+      }
+
+      if (newHits.length > 0){
+        state.detector.lastAlertAt = state.time;
+        state.detector.recentHits = newHits.length;
+        const sample = newHits.slice(0, 4);
+        for (const hit of sample){
+          addLog("alert", `Malicious handset detected: IMEI ${hit.imei} (${hit.rate.toFixed(1)} req/s estimated).`);
+        }
+        if (newHits.length > sample.length){
+          addLog("info", `${newHits.length - sample.length} additional malicious handsets were detected in this scan.`);
+        }
+      } else {
+        state.detector.recentHits = 0;
+      }
+    }
+
+    function renderDetectionPanels(){
+      const p = readParams();
+      const detected = state.botFleet.filter((b) => b.detected);
+      const sorted = [...detected].sort((a, b) => b.attackTotal - a.attackTotal);
+      const maxAttack = sorted.length > 0 ? sorted[0].attackTotal : 1;
+      const disconnectedCount = p.disconnectDetected ? detected.length : 0;
+
+      ui.detectedCountTxt.textContent = p.disconnectDetected
+        ? `${detected.length} detected / ${disconnectedCount} disconnected`
+        : `${detected.length} detected`;
+      ui.logCountTxt.textContent = `${state.logs.length} events`;
+
+      if (state.logs.length === 0){
+        ui.logWindow.innerHTML = `<div class="empty">No detection events yet.</div>`;
+      } else {
+        const lines = state.logs.slice(0, 80).map((line) => {
+          return `<div class="log-line ${line.level}"><span class="ts">[${formatSimTime(line.t)}]</span> ${escapeHtml(line.message)}</div>`;
+        }).join("");
+        ui.logWindow.innerHTML = lines;
+      }
+
+      if (sorted.length === 0){
+        ui.botBars.innerHTML = `<div class="empty">No malicious devices have been detected yet.</div>`;
+      } else {
+        const rows = sorted.slice(0, 24).map((bot) => {
+          const width = 8 + 92 * (bot.attackTotal / Math.max(1, maxAttack));
+          const disconnected = isBotDisconnected(bot, p);
+          return `
+            <div class="bar-row ${disconnected ? "disconnected" : ""}">
+              <div class="bar-meta">
+                <span class="imei">${bot.imei}</span>
+                <span class="count">${fmt(Math.round(bot.attackTotal))} attacks${disconnected ? " - disconnected" : ""}</span>
+              </div>
+              <div class="bar-track"><div class="bar-fill" style="width:${width.toFixed(2)}%"></div></div>
+            </div>
+          `;
+        }).join("");
+        ui.botBars.innerHTML = rows;
+      }
+    }
+
+    function drawRoundRect(ctx, x, y, w, h, r){
+      const rr = Math.min(r, w / 2, h / 2);
+      ctx.beginPath();
+      ctx.moveTo(x + rr, y);
+      ctx.arcTo(x + w, y, x + w, y + h, rr);
+      ctx.arcTo(x + w, y + h, x, y + h, rr);
+      ctx.arcTo(x, y + h, x, y, rr);
+      ctx.arcTo(x, y, x + w, y, rr);
+      ctx.closePath();
+    }
+
+    function drawDevice(x, y, bot, disconnected, isLight){
+      sctx.save();
+      sctx.translate(x, y);
+      drawRoundRect(sctx, -7, -11, 14, 22, 4);
+      sctx.fillStyle = disconnected
+        ? "rgba(255,142,160,0.95)"
+        : (isLight ? "rgba(95,114,128,0.7)" : "rgba(255,255,255,0.87)");
+      sctx.fill();
+      drawRoundRect(sctx, -5, -8, 10, 15, 3);
+      sctx.fillStyle = disconnected
+        ? "rgba(94,0,21,0.36)"
+        : (isLight ? "rgba(240,247,251,0.78)" : "rgba(0,0,0,0.28)");
+      sctx.fill();
+      if (bot){
+        sctx.fillStyle = isLight ? "rgba(222,66,100,0.96)" : "rgba(255,111,139,0.95)";
+        sctx.beginPath();
+        sctx.arc(4.7, 6.5, 2.7, 0, Math.PI * 2);
+        sctx.fill();
+      }
+      sctx.restore();
+    }
+
+    function drawScene(dt){
+      const W = ui.scene.clientWidth;
+      const H = ui.scene.clientHeight;
+      sctx.clearRect(0, 0, W, H);
+      const p = readParams();
+      const isLight = document.body.classList.contains("theme-light");
+      const palette = isLight ? {
+        labelText: "rgba(20,64,92,0.88)",
+        zoneStroke: "rgba(45,138,211,0.36)",
+        nodeBoxFill: "rgba(42,97,138,0.14)",
+        upfBoxFill: "rgba(25,155,132,0.14)",
+        sinkFill: "rgba(45,138,211,0.12)",
+        panelStroke: "rgba(24,77,111,0.44)",
+        nodeText: "rgba(18,62,89,0.96)",
+        detectorTitle: "rgba(19,66,95,0.95)",
+        detectorSub: "rgba(20,66,94,0.8)",
+        linkStroke: "rgba(22,67,94,0.55)",
+        telemetryLink: "rgba(36,124,192,0.68)",
+        loadLabel: "rgba(19,64,94,0.84)"
+      } : {
+        labelText: "rgba(255,255,255,0.8)",
+        zoneStroke: "rgba(120,207,255,0.24)",
+        nodeBoxFill: "rgba(255,255,255,0.07)",
+        upfBoxFill: "rgba(86,244,184,0.1)",
+        sinkFill: "rgba(120,207,255,0.08)",
+        panelStroke: "rgba(255,255,255,0.24)",
+        nodeText: "rgba(255,255,255,0.9)",
+        detectorTitle: "rgba(255,255,255,0.88)",
+        detectorSub: "rgba(255,255,255,0.74)",
+        linkStroke: "rgba(255,255,255,0.45)",
+        telemetryLink: "rgba(120,207,255,0.5)",
+        loadLabel: "rgba(255,255,255,0.75)"
+      };
+
+      const gnb = { x: W * 0.42, y: H * 0.49 };
+      const upf = { x: W * 0.68, y: H * 0.49 };
+      const sink = { x: W * 0.90, y: H * 0.49 };
+      const loadMeterX = W - 30;
+      const detector = {
+        x: upf.x - 88,
+        y: Math.min(H - 106, upf.y + 90),
+        w: 176,
+        h: 84
+      };
+
+      sctx.fillStyle = palette.labelText;
+      sctx.font = "700 13px 'IBM Plex Sans', sans-serif";
+      sctx.fillText("Legitimate devices", 20, 28);
+      sctx.fillText("Malicious devices", 20, H - 10);
+      const servicesLabelX = clamp(sink.x - 52, 20, loadMeterX - 190);
+      const servicesLabel = "Legitimate services";
+      const servicesMaxW = Math.max(52, loadMeterX - servicesLabelX - 8);
+      let servicesLabelBottom = 28;
+      if (sctx.measureText(servicesLabel).width > servicesMaxW){
+        sctx.fillText("Legitimate", servicesLabelX, 22);
+        sctx.fillText("services", servicesLabelX, 36);
+        servicesLabelBottom = 36;
+      } else {
+        sctx.fillText(servicesLabel, servicesLabelX, 28);
+      }
+
+      sctx.strokeStyle = palette.zoneStroke;
+      sctx.setLineDash([7, 7]);
+      sctx.lineWidth = 1.4;
+      drawRoundRect(sctx, 10, 34, W * 0.30, H * 0.44, 16);
+      sctx.stroke();
+      drawRoundRect(sctx, 10, H * 0.54, W * 0.30, H * 0.42, 16);
+      sctx.stroke();
+      drawRoundRect(sctx, W * 0.80, 34, W * 0.18, H * 0.90, 16);
+      sctx.stroke();
+      sctx.setLineDash([]);
+
+      drawRoundRect(sctx, gnb.x - 62, gnb.y - 48, 124, 96, 14);
+      sctx.fillStyle = palette.nodeBoxFill;
+      sctx.fill();
+      sctx.strokeStyle = palette.panelStroke;
+      sctx.stroke();
+      sctx.fillStyle = palette.nodeText;
+      sctx.font = "800 18px 'IBM Plex Sans', sans-serif";
+      sctx.fillText("gNB", gnb.x - 22, gnb.y + 6);
+
+      drawRoundRect(sctx, upf.x - 78, upf.y - 62, 156, 124, 16);
+      sctx.fillStyle = palette.upfBoxFill;
+      sctx.fill();
+      sctx.strokeStyle = palette.panelStroke;
+      sctx.stroke();
+      sctx.fillStyle = palette.nodeText;
+      sctx.font = "900 20px 'IBM Plex Sans', sans-serif";
+      sctx.fillText("UPF", upf.x - 22, upf.y + 6);
+
+      const sinceAlert = state.time - state.detector.lastAlertAt;
+      const alertActive = sinceAlert >= 0 && sinceAlert < 2.8;
+      const scanPulse = state.running ? (0.5 + 0.5 * Math.sin(state.time * 7.2)) : 0.2;
+
+      drawRoundRect(sctx, detector.x, detector.y, detector.w, detector.h, 13);
+      sctx.fillStyle = isLight ? "rgba(45,138,211,0.11)" : "rgba(120,207,255,0.08)";
+      if (alertActive) sctx.fillStyle = "rgba(255,111,139,0.11)";
+      sctx.fill();
+      sctx.strokeStyle = alertActive ? "rgba(255,111,139,0.76)" : (isLight ? "rgba(45,138,211,0.62)" : "rgba(120,207,255,0.44)");
+      sctx.lineWidth = 1.8;
+      sctx.stroke();
+
+      sctx.fillStyle = palette.detectorTitle;
+      sctx.font = "760 13px 'IBM Plex Sans', sans-serif";
+      const detectorTextX = detector.x + 12;
+      const detectorTitleY = detector.y + 19;
+      const detectorTextMaxW = detector.w - 26;
+      const detectorTitle = "DDoS Detection Engine";
+      if (sctx.measureText(detectorTitle).width > detectorTextMaxW){
+        sctx.fillText("DDoS Detection", detectorTextX, detectorTitleY);
+        sctx.fillText("Engine", detectorTextX, detectorTitleY + 13);
+      } else {
+        sctx.fillText(detectorTitle, detectorTextX, detectorTitleY + 6);
+      }
+
+      sctx.font = "650 11px 'IBM Plex Sans', sans-serif";
+      sctx.fillStyle = palette.detectorSub;
+      if (alertActive){
+        const alertLine = `Alert: ${state.detector.recentHits} suspicious IMEI(s)`;
+        if (sctx.measureText(alertLine).width > detectorTextMaxW){
+          sctx.fillText(`Alert: ${state.detector.recentHits} suspicious`, detectorTextX, detector.y + 51);
+          sctx.fillText("IMEI(s)", detectorTextX, detector.y + 64);
+        } else {
+          sctx.fillText(alertLine, detectorTextX, detector.y + 58);
+        }
+      } else {
+        const monitorLine = "Monitoring UPF telemetry stream";
+        if (sctx.measureText(monitorLine).width > detectorTextMaxW){
+          sctx.fillText("Monitoring UPF", detectorTextX, detector.y + 51);
+          sctx.fillText("telemetry stream", detectorTextX, detector.y + 64);
+        } else {
+          sctx.fillText(monitorLine, detectorTextX, detector.y + 58);
+        }
+      }
+
+      const ledX = detector.x + detector.w - 18;
+      const ledY = detector.y + 17;
+      const ledA = alertActive ? 0.85 : (0.26 + 0.55 * scanPulse);
+      sctx.beginPath();
+      sctx.fillStyle = alertActive ? `rgba(255,111,139,${ledA})` : `rgba(86,244,184,${ledA})`;
+      sctx.arc(ledX, ledY, 5, 0, Math.PI * 2);
+      sctx.fill();
+
+      sctx.save();
+      sctx.shadowBlur = alertActive ? 18 : 13;
+      sctx.shadowColor = alertActive ? "rgba(255,111,139,0.75)" : "rgba(86,244,184,0.7)";
+      sctx.beginPath();
+      sctx.fillStyle = alertActive ? "rgba(255,111,139,0.9)" : "rgba(86,244,184,0.86)";
+      sctx.arc(ledX, ledY, 2.6, 0, Math.PI * 2);
+      sctx.fill();
+      sctx.restore();
+
+      drawRoundRect(sctx, sink.x - 52, sink.y - 78, 104, 156, 14);
+      sctx.fillStyle = palette.sinkFill;
+      sctx.fill();
+      sctx.strokeStyle = isLight ? "rgba(24,77,111,0.36)" : "rgba(255,255,255,0.22)";
+      sctx.stroke();
+
+      const L = state.metrics.load;
+      const glow = 0.12 + 0.62 * L;
+      sctx.save();
+      sctx.shadowBlur = 26;
+      sctx.shadowColor = `rgba(255,111,139,${glow})`;
+      sctx.strokeStyle = `rgba(255,111,139,${0.22 + 0.58 * L})`;
+      sctx.lineWidth = 3;
+      drawRoundRect(sctx, upf.x - 82, upf.y - 66, 164, 132, 18);
+      sctx.stroke();
+      sctx.restore();
+
+      sctx.strokeStyle = palette.linkStroke;
+      sctx.lineWidth = 1.4;
+      sctx.beginPath();
+      sctx.moveTo(W * 0.30, H * 0.28);
+      sctx.lineTo(gnb.x - 62, gnb.y - 10);
+      sctx.moveTo(W * 0.30, H * 0.74);
+      sctx.lineTo(gnb.x - 62, gnb.y + 10);
+      sctx.moveTo(gnb.x + 62, gnb.y);
+      sctx.lineTo(upf.x - 78, upf.y);
+      sctx.moveTo(upf.x + 78, upf.y);
+      sctx.lineTo(sink.x - 52, sink.y);
+      sctx.stroke();
+
+      const legitPass = state.metrics.L_off > 0 ? state.metrics.L_srv / state.metrics.L_off : 1;
+      const legitPathAlpha = isLight ? (0.18 + 0.75 * legitPass) : (0.06 + 0.84 * legitPass);
+      sctx.strokeStyle = `rgba(86,244,184,${legitPathAlpha.toFixed(3)})`;
+      sctx.lineWidth = 2.4;
+      sctx.beginPath();
+      sctx.moveTo(upf.x + 78, upf.y);
+      sctx.lineTo(sink.x - 52, sink.y);
+      sctx.stroke();
+
+      if (legitPass < 0.08 && state.metrics.L_off > 20){
+        const collapseW = 132;
+        const collapseX = clamp(upf.x - (collapseW / 2), 14, loadMeterX - collapseW - 6);
+        const collapseY = Math.max(54, upf.y - 108);
+        drawRoundRect(sctx, collapseX, collapseY, 132, 38, 8);
+        sctx.fillStyle = isLight ? "rgba(255,111,139,0.24)" : "rgba(255,111,139,0.18)";
+        sctx.fill();
+        sctx.strokeStyle = isLight ? "rgba(221,61,96,0.78)" : "rgba(255,111,139,0.68)";
+        sctx.lineWidth = 1.3;
+        sctx.stroke();
+        sctx.fillStyle = isLight ? "rgba(128,24,47,0.95)" : "rgba(255,214,222,0.95)";
+        sctx.font = "700 11px 'IBM Plex Sans', sans-serif";
+        sctx.fillText("Legitimate path", collapseX + 8, collapseY + 15);
+        sctx.fillText("collapsed", collapseX + 8, collapseY + 29);
+      }
+
+      sctx.strokeStyle = palette.telemetryLink;
+      sctx.setLineDash([5, 5]);
+      sctx.beginPath();
+      sctx.moveTo(upf.x, upf.y + 62);
+      sctx.lineTo(detector.x + detector.w * 0.5, detector.y);
+      sctx.stroke();
+      sctx.setLineDash([]);
+
+      const probeT = (state.time * 0.9) % 1;
+      const probeX = lerp(upf.x, detector.x + detector.w * 0.5, probeT);
+      const probeY = lerp(upf.y + 62, detector.y, probeT);
+      sctx.beginPath();
+      sctx.fillStyle = alertActive ? "rgba(255,111,139,0.94)" : "rgba(120,207,255,0.9)";
+      sctx.arc(probeX, probeY, 2.6, 0, Math.PI * 2);
+      sctx.fill();
+
+      for (const n of state.legitNodes) drawDevice(n.x, n.y, false, false, isLight);
+      for (const bot of state.botFleet){
+        if (!bot.visible) continue;
+        drawDevice(bot.x, bot.y, true, isBotDisconnected(bot, p), isLight);
+      }
+
+      const visualScale = Math.max(1, p.capacity / 20);
+      state.debtLegit += (state.metrics.L_srv * dt) / visualScale;
+      state.debtLegitDrop += (state.metrics.L_drop * dt) / Math.max(1, visualScale * 2.2);
+      state.debtBot += (state.metrics.B_off * dt) / visualScale;
+
+      const maxSpawn = 80;
+      let spawned = 0;
+      const passLegit = 1;
+      const passBot = state.metrics.B_off > 0 ? state.metrics.B_srv / state.metrics.B_off : 0;
+      const eligibleBots = p.disconnectDetected
+        ? state.botFleet.filter((b) => !b.detected)
+        : state.botFleet;
+      while (state.debtLegit >= 1 && spawned < maxSpawn){
+        state.debtLegit -= 1;
+        if (state.legitNodes.length > 0){
+          const from = state.legitNodes[(Math.random() * state.legitNodes.length) | 0];
+          spawnPacket("legit", from, gnb, upf, sink, passLegit, "");
+          spawned++;
+        } else break;
+      }
+
+      let droppedBursts = 0;
+      while (state.debtLegitDrop >= 1 && droppedBursts < 26){
+        state.debtLegitDrop -= 1;
+        addFlash(upf.x - 14 + (Math.random() * 28), upf.y + (Math.random() - 0.5) * 30, "legit");
+        droppedBursts++;
+      }
+
+      while (state.debtBot >= 1 && spawned < maxSpawn){
+        state.debtBot -= 1;
+        if (eligibleBots.length > 0){
+          const bot = eligibleBots[(Math.random() * eligibleBots.length) | 0];
+          const from = bot.visible ? bot : randomBotOrigin(W, H);
+          spawnPacket("bot", from, gnb, upf, sink, passBot, bot.imei);
+          spawned++;
+        } else break;
+      }
+
+      const nextPackets = [];
+      for (const pk of state.packets){
+        advancePacket(pk, dt);
+
+        if (pk.stage === 2 && pk.t === 0){
+          if (Math.random() > pk.passChance){
+            addFlash(upf.x + (Math.random() * 18), upf.y + (Math.random() - 0.5) * 36, pk.kind);
+            continue;
+          }
+          addFlash(upf.x + (Math.random() * 14), upf.y + (Math.random() - 0.5) * 36, pk.kind);
+        }
+
+        if (pk.stage >= 3){
+          addFlash(sink.x - 8, sink.y + (Math.random() - 0.5) * 46, pk.kind);
+          continue;
+        }
+        nextPackets.push(pk);
+      }
+      state.packets = nextPackets;
+
+      for (const pk of state.packets){
+        sctx.beginPath();
+        sctx.fillStyle = pk.kind === "bot" ? "rgba(255,111,139,0.96)" : "rgba(86,244,184,0.95)";
+        sctx.arc(pk.x, pk.y, pk.kind === "bot" ? 2.8 : 2.4, 0, Math.PI * 2);
+        sctx.fill();
+      }
+
+      const nextFlashes = [];
+      for (const fl of state.flashes){
+        fl.t += dt;
+        if (fl.t < 0.35){
+          const a = 1 - fl.t / 0.35;
+          sctx.save();
+          sctx.globalAlpha = a;
+          sctx.strokeStyle = fl.kind === "bot" ? "rgba(255,111,139,0.96)" : "rgba(86,244,184,0.96)";
+          sctx.lineWidth = 2;
+          sctx.beginPath();
+          sctx.arc(fl.x, fl.y, 8 + 25 * fl.t, 0, Math.PI * 2);
+          sctx.stroke();
+          sctx.restore();
+          nextFlashes.push(fl);
+        }
+      }
+      state.flashes = nextFlashes;
+
+      const mx = loadMeterX;
+      const my = 16;
+      const mw = 12;
+      const mh = H - 32;
+      drawRoundRect(sctx, mx, my, mw, mh, 8);
+      sctx.fillStyle = "rgba(255,255,255,0.1)";
+      sctx.fill();
+      sctx.strokeStyle = "rgba(255,255,255,0.24)";
+      sctx.stroke();
+
+      const fillH = mh * state.metrics.load;
+      const fy = my + (mh - fillH);
+      const c = state.metrics.load < 0.6 ? "rgba(86,244,184,0.95)" :
+                state.metrics.load < 0.85 ? "rgba(255,203,101,0.95)" :
+                "rgba(255,111,139,0.97)";
+      drawRoundRect(sctx, mx + 2, fy + 2, mw - 4, Math.max(6, fillH - 4), 6);
+      sctx.fillStyle = c;
+      sctx.fill();
+      sctx.fillStyle = palette.loadLabel;
+      sctx.font = "700 12px 'IBM Plex Sans', sans-serif";
+      const loadLabelY = (servicesLabelBottom >= 34) ? (my + 44) : (my + 14);
+      sctx.fillText("Load", mx - 38, loadLabelY);
+    }
+
+    function drawHistory(){
+      const W = ui.history.clientWidth;
+      const H = ui.history.clientHeight;
+      hctx.clearRect(0, 0, W, H);
+
+      hctx.fillStyle = "rgba(255,255,255,0.03)";
+      hctx.fillRect(0, 0, W, H);
+
+      hctx.strokeStyle = "rgba(255,255,255,0.16)";
+      hctx.lineWidth = 1;
+      hctx.beginPath();
+      for (let i = 0; i <= 4; i++){
+        const y = (H - 1) * i / 4;
+        hctx.moveTo(0, y);
+        hctx.lineTo(W, y);
+      }
+      hctx.stroke();
+
+      const n = state.history.length;
+      if (n < 2) return;
+
+      function plot(colour, fn){
+        hctx.strokeStyle = colour;
+        hctx.lineWidth = 2;
+        hctx.beginPath();
+        for (let i = 0; i < n; i++){
+          const t = i / (state.maxHistory - 1);
+          const x = t * W;
+          const y = (1 - fn(state.history[i])) * H;
+          if (i === 0) hctx.moveTo(x, y);
+          else hctx.lineTo(x, y);
+        }
+        hctx.stroke();
+      }
+
+      plot("rgba(120,207,255,0.96)", (d) => d.load);
+      plot("rgba(86,244,184,0.96)", (d) => d.f_legit);
+      plot("rgba(255,111,139,0.96)", (d) => d.legitDropRatio);
+      plot("rgba(255,211,138,0.94)", (d) => d.latencyNorm);
+    }
+
+    function updateTexts(m){
+      const detectedCount = state.botFleet.reduce((n, b) => n + (b.detected ? 1 : 0), 0);
+      ui.summary.textContent = `Load: ${(m.load * 100).toFixed(1)}% | Offered ${(m.L_off + m.B_off).toFixed(0)} req/s`;
+      ui.loadTxt.textContent = (m.load * 100).toFixed(1) + "%";
+      ui.legitServedTxt.textContent = `${m.L_srv.toFixed(0)} req/s`;
+      ui.legitDropTxt.textContent = `${m.L_drop.toFixed(0)} req/s`;
+      ui.botDropTxt.textContent = `${m.B_drop.toFixed(0)} req/s`;
+      ui.countersTxt.textContent =
+        `Total served (legit): ${fmt(state.totals.legitServed)} | dropped (legit): ${fmt(state.totals.legitDropped)} | dropped (botnet): ${fmt(state.totals.botDropped)} | detected IMEIs: ${fmt(detectedCount)} | latency: ${m.latency} ms`;
+    }
+
+    function tick(dtRaw){
+      let p = readParams();
+      const dt = dtRaw * p.speed;
+      if (dt > 0) state.time += dt;
+
+      if (state.targetBotDevices !== null){
+        const current = +ui.botDevices.value;
+        const target = state.targetBotDevices;
+        if (Math.abs(target - current) < 0.5){
+          ui.botDevices.value = String(target);
+          state.targetBotDevices = null;
+        } else {
+          const step = Math.sign(target - current) * Math.max(0.25, Math.abs(target - current) * 0.015);
+          ui.botDevices.value = String(Math.round(clamp(current + step, 0, 260)));
+        }
+        p = readParams();
+      }
+
+      syncBotFleet(p.botDevices);
+      const effectiveBotDevices = p.disconnectDetected
+        ? state.botFleet.reduce((n, b) => n + (b.detected ? 0 : 1), 0)
+        : p.botDevices;
+      const m = computeModel(p, effectiveBotDevices);
+      state.metrics = m;
+
+      if (dt > 0){
+        state.totals.legitServed += m.L_srv * dt;
+        state.totals.legitDropped += m.L_drop * dt;
+        state.totals.botServed += m.B_srv * dt;
+        state.totals.botDropped += m.B_drop * dt;
+
+        updateBotTelemetry(p, dt);
+        runDetector(p, dt);
+
+        state.historyTick += dt;
+        if (state.historyTick >= 0.2){
+          state.historyTick -= 0.2;
+          const legitDropRatio = m.L_off > 0 ? m.L_drop / m.L_off : 0;
+          const latencyNorm = clamp((m.latency - 20) / 650, 0, 1);
+          state.history.push({
+            load: m.load,
+            f_legit: m.f_legit,
+            legitDropRatio,
+            latencyNorm
+          });
+          if (state.history.length > state.maxHistory) state.history.shift();
+        }
+      }
+
+      state.detector.uiTimer += dtRaw;
+      if (state.detector.uiTimer >= 0.2){
+        state.detector.uiTimer = 0;
+        renderDetectionPanels();
+      }
+
+      updateTexts(m);
+      updateLabels();
+      drawScene(dt);
+      drawHistory();
+    }
+
+    function fitCanvas(canvas, ctx){
+      const rect = canvas.getBoundingClientRect();
+      const dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+      canvas.width = Math.floor(rect.width * dpr);
+      canvas.height = Math.floor(rect.height * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+
+    function resize(){
+      fitCanvas(ui.scene, sctx);
+      fitCanvas(ui.history, hctx);
+      rebuildNodes();
+      drawScene(0.016);
+      drawHistory();
+      renderDetectionPanels();
+    }
+
+    function resetCounters(){
+      state.totals.legitServed = 0;
+      state.totals.legitDropped = 0;
+      state.totals.botServed = 0;
+      state.totals.botDropped = 0;
+      state.history = [];
+      state.historyTick = 0;
+      state.packets = [];
+      state.flashes = [];
+      state.debtLegit = 0;
+      state.debtLegitDrop = 0;
+      state.debtBot = 0;
+      state.time = 0;
+      state.logs = [];
+      state.detector.scanTimer = 0;
+      state.detector.uiTimer = 0;
+      state.detector.lastScanAt = 0;
+      state.detector.lastAlertAt = -999;
+      state.detector.recentHits = 0;
+
+      for (const bot of state.botFleet){
+        bot.attackTotal = 0;
+        bot.attackWindow = 0;
+        bot.suspiciousSeconds = 0;
+        bot.detected = false;
+        bot.detectedAt = 0;
+      }
+
+      addLog("system", "Simulation counters have been reset.");
+      renderDetectionPanels();
+    }
+
+    function applyPreset(type){
+      if (type === "normal"){
+        ui.legitDevices.value = "90";
+        ui.legitRate.value = "45";
+        ui.botDevices.value = "5";
+        ui.botRate.value = "20";
+        ui.capacity.value = "1000";
+        ui.gamma.value = "30";
+        ui.floor.value = "20";
+        ui.speed.value = "10";
+        state.targetBotDevices = null;
+      }
+      if (type === "attack"){
+        ui.legitDevices.value = "90";
+        ui.legitRate.value = "50";
+        ui.botDevices.value = "10";
+        ui.botRate.value = "90";
+        ui.capacity.value = "1000";
+        ui.gamma.value = "32";
+        ui.floor.value = "15";
+        ui.speed.value = "10";
+        state.targetBotDevices = 200;
+      }
+      if (type === "saturation"){
+        ui.legitDevices.value = "100";
+        ui.legitRate.value = "80";
+        ui.botDevices.value = "220";
+        ui.botRate.value = "120";
+        ui.capacity.value = "1000";
+        ui.gamma.value = "45";
+        ui.floor.value = "5";
+        ui.speed.value = "11";
+        state.targetBotDevices = null;
+      }
+      updateLabels();
+      resetCounters();
+    }
+
+    const onInput = () => {
+      state.targetBotDevices = null;
+      updateLabels();
+      renderDetectionPanels();
+    };
+    ["input", "change"].forEach((ev) => {
+      ui.legitDevices.addEventListener(ev, onInput);
+      ui.botDevices.addEventListener(ev, onInput);
+      ui.legitRate.addEventListener(ev, onInput);
+      ui.botRate.addEventListener(ev, onInput);
+      ui.capacity.addEventListener(ev, onInput);
+      ui.gamma.addEventListener(ev, onInput);
+      ui.floor.addEventListener(ev, onInput);
+      ui.speed.addEventListener(ev, onInput);
+      ui.detPressure.addEventListener(ev, onInput);
+      ui.detLoad.addEventListener(ev, onInput);
+      ui.detFactor.addEventListener(ev, onInput);
+      ui.detMinRate.addEventListener(ev, onInput);
+      ui.detConfirm.addEventListener(ev, onInput);
+      ui.disconnectDetected.addEventListener(ev, onInput);
+    });
+
+    ui.disconnectDetected.addEventListener("change", () => {
+      const on = !!ui.disconnectDetected.checked;
+      addLog("system", on
+        ? "Mitigation enabled: detected malicious handsets are disconnected from the network."
+        : "Mitigation disabled: detected malicious handsets are allowed to transmit again.");
+      renderDetectionPanels();
+    });
+
+    ui.themeSelect.addEventListener("change", () => {
+      applyTheme(ui.themeSelect.value);
+    });
+
+    ui.start.addEventListener("click", () => {
+      if (!state.running){
+        state.running = true;
+        addLog("system", "Simulation started.");
+        renderDetectionPanels();
+      }
+    });
+    ui.pause.addEventListener("click", () => {
+      if (state.running){
+        state.running = false;
+        addLog("system", "Simulation paused.");
+        renderDetectionPanels();
+      }
+    });
+    ui.reset.addEventListener("click", () => { resetCounters(); });
+
+    ui.normalPreset.addEventListener("click", () => applyPreset("normal"));
+    ui.attackPreset.addEventListener("click", () => applyPreset("attack"));
+    ui.saturationPreset.addEventListener("click", () => applyPreset("saturation"));
+
+    window.addEventListener("resize", resize);
+
+    let last = performance.now();
+    function loop(now){
+      const dt = Math.min(0.05, (now - last) / 1000);
+      last = now;
+      if (state.running){
+        tick(dt);
+      } else {
+        tick(0);
+      }
+      requestAnimationFrame(loop);
+    }
+
+    const savedTheme = (() => {
+      try { return localStorage.getItem("ddos_theme_mode") || "dark"; } catch { return "dark"; }
+    })();
+    applyTheme(savedTheme);
+    updateLabels();
+    resetCounters();
+    resize();
+    requestAnimationFrame(loop);
+  </script>
+</body>
+</html>
+
